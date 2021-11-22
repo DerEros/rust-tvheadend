@@ -12,3 +12,7 @@ Cargo.lock
 # IntelliJ
 /.idea/
 *.iml
+
+# Added by cargo
+
+/target
