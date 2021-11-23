@@ -1,6 +1,6 @@
 use log::*;
 use anyhow::Result;
-use crate::htps::field::{field, serialize as serialize_field, ParsableField};
+use crate::htps::field::{field, serialize as serialize_field, ParsableField, Convertible};
 use std::io::{Write, Read};
 
 #[derive(Debug)]
@@ -52,6 +52,14 @@ pub fn deserialize(input: &mut dyn Read) -> Result<()> {
         consumed += bytes;
 
         warn!("Field: {:?}", field);
+        if field.field_type() == 3 {
+            let s: String = field.convert()?;
+            warn!("  Str: {}", s);
+        }
+        if field.field_type() == 2 {
+            let u: u32 = field.convert()?;
+            warn!("  S64: {}", u);
+        }
     }
 
     Ok(())

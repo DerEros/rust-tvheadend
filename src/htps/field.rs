@@ -1,5 +1,5 @@
 use log::*;
-use anyhow::Result;
+use anyhow::{Result, bail};
 use std::io::{Write, Read};
 
 #[derive(Copy, Clone, Debug)]
@@ -150,6 +150,41 @@ impl ParsableField {
 
         Ok((bytes_consumed, Self { field_type, name, data }))
     }
+
+    pub fn field_type(&self) -> u8 { self.field_type }
+}
+
+pub trait Convertible<T> {
+    fn convert(&self) -> Result<T>;
+}
+
+impl Convertible<String> for ParsableField {
+    fn convert(&self) -> Result<String> {
+        if self.field_type == FieldType::Str as u8 {
+            Ok(String::from_utf8(self.data.clone())?)
+        } else {
+            bail!("Requested to read incompatible type as string");
+        }
+    }
+}
+
+impl Convertible<u32> for ParsableField {
+    fn convert(&self) -> Result<u32> {
+        if self.field_type == FieldType::S64 as u8 {
+            Ok(bytes2num(&self.data) as u32)
+        } else {
+            bail!("Requested to read incompatible type as string");
+        }
+    }
+}
+
+fn bytes2num(bytes: &Vec<u8>) -> i64 {
+    let mut result: i64 = 0;
+    for v in bytes {
+        result <<= 8;
+        result += *v as i64;
+    }
+    result
 }
 
 #[cfg(test)]
