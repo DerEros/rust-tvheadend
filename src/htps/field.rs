@@ -1,5 +1,4 @@
 use anyhow::Result;
-use log::*;
 use std::io::Write;
 
 #[derive(Copy, Clone, Debug)]
@@ -21,32 +20,46 @@ pub trait FieldT {
     fn get_name_length(&self) -> u8;
 }
 
-impl <T> FieldT for Field <T> {
+impl<T> Field<T> {
+    pub fn new(name: &'static str, value: T) -> Self {
+        Self { name, value }
+    }
+}
+
+pub fn field<T>(name: &'static str, value: T) -> Field<T> {
+    Field::new(name, value)
+}
+
+impl<T> FieldT for Field<T> {
     fn get_name(&self) -> &'static str {
         self.name
     }
 
     fn get_name_length(&self) -> u8 {
         let len = self.name.len();
-        if len > 255 { panic!("Field names longer than 255 characters are not supported") }
+        if len > 255 {
+            panic!("Field names longer than 255 characters are not supported")
+        }
         len as u8
     }
 }
 
 pub fn serialize<T, U>(field: &U, out: &mut dyn Write) -> Result<()>
-    where U: FieldT + SerializableField<T>
+where
+    U: FieldT + SerializableField<T>,
 {
-    out.write(&[ field.get_type_id() ]);                   // Type
-    out.write(&[ field.get_name_length() ]);               // Name length
-    out.write(&field.get_data_length().to_le_bytes());     // Data length
-    out.write(field.get_name().as_bytes());                // Name
-    field.serialize_value(out);                                // Payload
+    out.write_all(&[field.get_type_id()])?; // Type
+    out.write_all(&[field.get_name_length()])?; // Name length
+    out.write_all(&field.get_data_length().to_le_bytes())?; // Data length
+    out.write_all(field.get_name().as_bytes())?; // Name
+    field.serialize_value(out)?; // Payload
 
     Ok(())
 }
 
 pub fn get_total_field_size<T, U>(field: &U) -> u32
-    where U: FieldT + SerializableField<T>
+where
+    U: FieldT + SerializableField<T>,
 {
     let len: u32 = 1 +              // Type
         1 +                         // Name length
@@ -72,7 +85,7 @@ impl SerializableField<&'static str> for Field<&'static str> {
     }
 
     fn serialize_value(&self, out: &mut dyn Write) -> Result<()> {
-        out.write(self.value.as_bytes())?;
+        out.write_all(self.value.as_bytes())?;
         Ok(())
     }
 }
@@ -87,7 +100,7 @@ impl SerializableField<u32> for Field<u32> {
         let mut value = self.value;
         while value != 0 {
             len += 1;
-            value = value >> 8;
+            value >>= 8;
         }
 
         len
@@ -96,13 +109,12 @@ impl SerializableField<u32> for Field<u32> {
     fn serialize_value(&self, out: &mut dyn Write) -> Result<()> {
         let mut value = self.value;
         while value != 0 {
-            out.write(&[(self.value & 0xFF) as u8 ])?;
-            value = value >> 8;
+            out.write_all(&[(self.value & 0xFF) as u8])?;
+            value >>= 8;
         }
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -113,7 +125,7 @@ mod tests {
     fn test_name_length() {
         let field = Field {
             name: "MyName",
-            value: "FooBar"
+            value: "FooBar",
         };
 
         assert_eq!(6, field.get_name_length());
@@ -166,7 +178,7 @@ mod tests {
             value: 42 as u32,
         };
 
-        let expectation = vec![ 2, 6, 1, 0, 0, 0, 70, 111, 111, 66, 97, 114, 42 ];
+        let expectation = vec![2, 6, 1, 0, 0, 0, 70, 111, 111, 66, 97, 114, 42];
         let mut result: Vec<u8> = vec![];
         serialize(&field, &mut result);
         assert_eq!(expectation, result);

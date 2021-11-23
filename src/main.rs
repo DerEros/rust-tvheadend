@@ -1,9 +1,9 @@
-pub mod htsp;
-
-use crate::htsp::HtspSerializer;
 use anyhow::Result;
 use log::*;
-use serde::Serialize;
+
+use htps::htsp::*;
+
+pub mod htps;
 
 fn setup_logging() {
     env_logger::init();
@@ -15,14 +15,14 @@ async fn main() -> Result<()> {
     setup_logging();
     info!("Hello, world!");
 
-    let test = htsp::Request::Hello {
+    let test = Request::Hello {
         htsp_version: 25,
         client_name: "FooName",
         client_version: "1.2.3",
     };
-    let mut ser = HtspSerializer::create();
-    let res = test.serialize(&mut ser)?;
-    warn!("{:?}", res);
 
+    let mut out: Vec<u8> = vec![];
+    serialize(test, &mut out)?;
+    warn!("Result: {:?}", out);
     Ok(())
 }
