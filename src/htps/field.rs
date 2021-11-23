@@ -1,5 +1,6 @@
+use log::*;
 use anyhow::Result;
-use std::io::Write;
+use std::io::{Write, Read};
 
 #[derive(Copy, Clone, Debug)]
 enum FieldType {
@@ -113,6 +114,41 @@ impl SerializableField<u32> for Field<u32> {
             value >>= 8;
         }
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct ParsableField {
+    field_type: u8,
+    name: String,
+    data: Vec<u8>,
+}
+
+impl ParsableField {
+    pub fn from_read(input: &mut dyn Read) -> Result<(usize, Self)> {
+        let mut bytes_consumed: usize = 0;
+
+        let mut field_type_bytes = [0_u8; 1];
+        let mut name_length_bytes = [0_u8; 1];
+        let mut data_length_bytes = [0_u8; 4];
+
+        bytes_consumed += input.read(&mut field_type_bytes)?;
+        bytes_consumed += input.read(&mut name_length_bytes)?;
+        bytes_consumed += input.read(&mut data_length_bytes)?;
+
+        let field_type = u8::from_be_bytes(field_type_bytes);
+        let name_length = u8::from_be_bytes(name_length_bytes);
+        let data_length = u32::from_be_bytes(data_length_bytes);
+
+        let mut name_bytes = vec![0_u8; name_length as usize];
+        let mut data = vec![0_u8; data_length as usize];
+        input.read_exact(name_bytes.as_mut_slice())?;
+        input.read_exact(data.as_mut_slice())?;
+        bytes_consumed += name_length as usize + data_length as usize;
+
+        let name = String::from_utf8(name_bytes)?;
+
+        Ok((bytes_consumed, Self { field_type, name, data }))
     }
 }
 
