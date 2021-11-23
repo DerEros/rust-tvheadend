@@ -202,6 +202,41 @@ impl Convertible<Vec<u8>> for ParsableField {
     }
 }
 
+impl Convertible<Vec<ParsableField>> for ParsableField {
+    fn convert(&self) -> Result<Vec<ParsableField>> {
+        if self.field_type == FieldType::List as u8 {
+            let len = self.data.len();
+            let mut consumed: usize = 0;
+            let mut result = vec![];
+            let mut readable = self.data.as_slice();
+            while consumed < len {
+                let (bytes, field) = ParsableField::from_read(&mut readable)?;
+                consumed += bytes;
+                result.push(field);
+            }
+            Ok(result)
+        } else {
+            bail!("Requested to read incompatible type as Vec<ParsableField>")
+        }
+    }
+}
+
+impl Convertible<Vec<String>> for ParsableField {
+    fn convert(&self) -> Result<Vec<String>> {
+        if self.field_type == FieldType::List as u8 {
+            let mut result = vec![];
+            let parsable_fields: Vec<ParsableField> = self.convert()?;
+            for f in parsable_fields {
+                let c = f.convert()?;
+                result.push(c);
+            }
+            Ok(result)
+        } else {
+            bail!("Requested to read incompatible type as Vec<ParsableField>")
+        }
+    }
+}
+
 fn bytes2num(bytes: &[u8]) -> i64 {
     let mut result: i64 = 0;
     for v in bytes {

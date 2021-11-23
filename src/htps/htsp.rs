@@ -1,6 +1,5 @@
 use crate::htps::field::{field, serialize as serialize_field, Convertible, ParsableField};
 use anyhow::{anyhow, bail, Result};
-use log::*;
 use std::io::{Read, Write};
 
 #[derive(Debug)]
@@ -19,6 +18,7 @@ pub enum Reply {
         server_name: String,
         server_version: String,
         challenge: Vec<u8>,
+        server_capabilities: Vec<String>,
         webroot: Option<String>,
     },
 }
@@ -77,6 +77,7 @@ fn map2reply(map: HashMap<String, ParsableField>, method: &str) -> Result<Reply>
             server_name: get_field(&map, "servername")?,
             server_version: get_field(&map, "serverversion")?,
             challenge: get_field(&map, "challenge")?,
+            server_capabilities: get_list_field(&map, "servercapability")?,
             webroot: get_opt_field(&map, "webroot")?,
         }),
         _ => bail!("Unknown method returned: {}", method),
@@ -103,4 +104,16 @@ where
     } else {
         Ok(None)
     }
+}
+
+fn get_list_field<T>(map: &HashMap<String, ParsableField>, field_name: &str) -> Result<Vec<T>>
+where
+    ParsableField: Convertible<Vec<T>>,
+{
+    let list: Vec<T> = map
+        .get(field_name)
+        .ok_or_else(|| anyhow!("Field missing in reply: {}", field_name))?
+        .convert()?;
+
+    Ok(list)
 }
