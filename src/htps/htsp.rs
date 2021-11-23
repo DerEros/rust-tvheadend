@@ -16,7 +16,7 @@ pub fn serialize(req: Request, out: &mut dyn Write) -> Result<()> {
     let mut body: Vec<u8> = vec![];
     serialize_body(req, &mut body)?;
 
-    out.write_all(&(body.len() as u32).to_le_bytes())?;
+    out.write_all(&(body.len() as u32).to_be_bytes())?;
     out.write_all(body.as_slice())?;
 
     Ok(())

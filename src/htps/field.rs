@@ -50,7 +50,7 @@ where
 {
     out.write_all(&[field.get_type_id()])?; // Type
     out.write_all(&[field.get_name_length()])?; // Name length
-    out.write_all(&field.get_data_length().to_le_bytes())?; // Data length
+    out.write_all(&field.get_data_length().to_be_bytes())?; // Data length
     out.write_all(field.get_name().as_bytes())?; // Name
     field.serialize_value(out)?; // Payload
 
