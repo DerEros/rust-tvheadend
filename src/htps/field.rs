@@ -193,6 +193,16 @@ impl Convertible<u32> for ParsableField {
     }
 }
 
+impl Convertible<u64> for ParsableField {
+    fn convert(&self) -> Result<u64> {
+        if self.field_type == FieldType::S64 as u8 {
+            Ok(bytes2num(&self.data) as u64)
+        } else {
+            bail!("Requested to read incompatible type as u32");
+        }
+    }
+}
+
 impl Convertible<Bytes> for ParsableField {
     fn convert(&self) -> Result<Bytes> {
         if self.field_type == FieldType::Bin as u8 {

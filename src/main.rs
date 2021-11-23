@@ -37,5 +37,16 @@ async fn main() -> Result<()> {
 
     let reply = deserialize(&mut read_buffer.to_vec().as_slice(), "hello")?;
     warn!("Reply: {:?}", reply);
+
+
+    let test2 = Request::GetDiskSpace {};
+    let mut buffer2: Vec<u8> = vec![];
+    serialize(test2, &mut buffer2)?;
+    stream.write_all(buffer2.as_slice()).await?;
+    stream.read(&mut read_buffer[..]).await?;
+    let reply2 = deserialize(&mut read_buffer.to_vec().as_slice(), "getDiskSpace")?;
+    warn!("Reply: {:?}", reply2);
+
+
     Ok(())
 }

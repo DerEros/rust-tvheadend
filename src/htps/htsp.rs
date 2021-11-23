@@ -9,6 +9,7 @@ pub enum Request {
         client_name: &'static str,
         client_version: &'static str,
     },
+    GetDiskSpace {}
 }
 
 #[derive(Debug)]
@@ -21,6 +22,10 @@ pub enum Reply {
         server_capabilities: Vec<String>,
         webroot: Option<String>,
     },
+    GetDiskSpace {
+        free_disk_space: u64,
+        total_disk_space: u64,
+    }
 }
 
 use bytes::Bytes;
@@ -48,6 +53,9 @@ fn serialize_body(req: Request, out: &mut dyn Write) -> Result<()> {
             serialize_field(&field("htspversion", htsp_version), out)?;
             serialize_field(&field("clientname", client_name), out)?;
             serialize_field(&field("clientversion", client_version), out)?;
+        },
+        GetDiskSpace {} => {
+            serialize_field(&field("method", "getDiskSpace"), out)?;
         }
     }
 
@@ -80,6 +88,10 @@ fn map2reply(map: HashMap<String, ParsableField>, method: &str) -> Result<Reply>
             challenge: get_field(&map, "challenge")?,
             server_capabilities: get_list_field(&map, "servercapability")?,
             webroot: get_opt_field(&map, "webroot")?,
+        }),
+        "getDiskSpace" => Ok(Reply::GetDiskSpace {
+            free_disk_space: get_field(&map, "freediskspace")?,
+            total_disk_space: get_field(&map, "totaldiskspace")?,
         }),
         _ => bail!("Unknown method returned: {}", method),
     }
