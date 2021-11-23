@@ -1,10 +1,10 @@
 use anyhow::Result;
 use log::*;
 
-use htps::htsp::*;
-use tokio::net::TcpStream;
-use tokio::io::{AsyncWriteExt, AsyncReadExt};
 use crate::htps::htsp::deserialize;
+use htps::htsp::*;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 
 pub mod htps;
 
@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
     let mut read_buffer = [0_u8; 1024];
     stream.read(&mut read_buffer[..]).await?;
 
-    warn!("Reply: {:?}", read_buffer);
-    deserialize(&mut read_buffer.to_vec().as_slice())?;
+    let reply = deserialize(&mut read_buffer.to_vec().as_slice(), "hello")?;
+    warn!("Reply: {:?}", reply);
     Ok(())
 }

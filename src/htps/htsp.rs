@@ -1,7 +1,7 @@
+use crate::htps::field::{field, serialize as serialize_field, Convertible, ParsableField};
+use anyhow::{anyhow, bail, Result};
 use log::*;
-use anyhow::Result;
-use crate::htps::field::{field, serialize as serialize_field, ParsableField, Convertible};
-use std::io::{Write, Read};
+use std::io::{Read, Write};
 
 #[derive(Debug)]
 pub enum Request {
@@ -12,7 +12,20 @@ pub enum Request {
     },
 }
 
+#[derive(Debug)]
+pub enum Reply {
+    Hello {
+        htsp_version: u32,
+        server_name: String,
+        server_version: String,
+        challenge: Vec<u8>,
+        webroot: Option<String>,
+    },
+}
+
+use std::collections::HashMap;
 use Request::*;
+
 pub fn serialize(req: Request, out: &mut dyn Write) -> Result<()> {
     let mut body: Vec<u8> = vec![];
     serialize_body(req, &mut body)?;
@@ -40,27 +53,54 @@ fn serialize_body(req: Request, out: &mut dyn Write) -> Result<()> {
     Ok(())
 }
 
-pub fn deserialize(input: &mut dyn Read) -> Result<()> {
+pub fn deserialize(input: &mut dyn Read, method: &str) -> Result<Reply> {
     let mut consumed: usize = 0;
     let mut length_bytes = [0_u8; 4];
     input.read_exact(&mut length_bytes)?;
 
     let length = u32::from_be_bytes(length_bytes) as usize;
+    let mut fields: HashMap<String, ParsableField> = HashMap::new();
 
     while consumed < length {
         let (bytes, field) = ParsableField::from_read(input)?;
+        fields.insert(field.name(), field);
         consumed += bytes;
-
-        warn!("Field: {:?}", field);
-        if field.field_type() == 3 {
-            let s: String = field.convert()?;
-            warn!("  Str: {}", s);
-        }
-        if field.field_type() == 2 {
-            let u: u32 = field.convert()?;
-            warn!("  S64: {}", u);
-        }
     }
 
-    Ok(())
+    map2reply(fields, method)
+}
+
+fn map2reply(map: HashMap<String, ParsableField>, method: &str) -> Result<Reply> {
+    match method {
+        "hello" => Ok(Reply::Hello {
+            htsp_version: get_field(&map, "htspversion")?,
+            server_name: get_field(&map, "servername")?,
+            server_version: get_field(&map, "serverversion")?,
+            challenge: get_field(&map, "challenge")?,
+            webroot: get_opt_field(&map, "webroot")?,
+        }),
+        _ => bail!("Unknown method returned: {}", method),
+    }
+}
+
+fn get_field<T>(map: &HashMap<String, ParsableField>, field_name: &str) -> Result<T>
+where
+    ParsableField: Convertible<T>,
+{
+    map.get(field_name)
+        .ok_or_else(|| anyhow!("Field missing in reply: {}", field_name))?
+        .convert()
+}
+
+fn get_opt_field<T>(map: &HashMap<String, ParsableField>, field_name: &str) -> Result<Option<T>>
+where
+    ParsableField: Convertible<T>,
+{
+    let field_opt = map.get(field_name);
+    if let Some(field) = field_opt {
+        let converted = field.convert()?;
+        Ok(Some(converted))
+    } else {
+        Ok(None)
+    }
 }

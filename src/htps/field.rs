@@ -1,6 +1,5 @@
-use log::*;
-use anyhow::{Result, bail};
-use std::io::{Write, Read};
+use anyhow::{bail, Result};
+use std::io::{Read, Write};
 
 #[derive(Copy, Clone, Debug)]
 enum FieldType {
@@ -148,10 +147,25 @@ impl ParsableField {
 
         let name = String::from_utf8(name_bytes)?;
 
-        Ok((bytes_consumed, Self { field_type, name, data }))
+        Ok((
+            bytes_consumed,
+            Self {
+                field_type,
+                name,
+                data,
+            },
+        ))
     }
 
-    pub fn field_type(&self) -> u8 { self.field_type }
+    pub fn field_type(&self) -> u8 {
+        self.field_type
+    }
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+    pub fn data(&self) -> Vec<u8> {
+        self.data.clone()
+    }
 }
 
 pub trait Convertible<T> {
@@ -173,12 +187,22 @@ impl Convertible<u32> for ParsableField {
         if self.field_type == FieldType::S64 as u8 {
             Ok(bytes2num(&self.data) as u32)
         } else {
-            bail!("Requested to read incompatible type as string");
+            bail!("Requested to read incompatible type as u32");
         }
     }
 }
 
-fn bytes2num(bytes: &Vec<u8>) -> i64 {
+impl Convertible<Vec<u8>> for ParsableField {
+    fn convert(&self) -> Result<Vec<u8>> {
+        if self.field_type == FieldType::Bin as u8 {
+            Ok(self.data.clone())
+        } else {
+            bail!("Requested to read incompatible type as Vec<u8>");
+        }
+    }
+}
+
+fn bytes2num(bytes: &[u8]) -> i64 {
     let mut result: i64 = 0;
     for v in bytes {
         result <<= 8;
