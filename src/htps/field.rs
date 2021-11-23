@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use bytes::Bytes;
 use std::io::{Read, Write};
 
 #[derive(Copy, Clone, Debug)]
@@ -192,40 +193,41 @@ impl Convertible<u32> for ParsableField {
     }
 }
 
-impl Convertible<Vec<u8>> for ParsableField {
-    fn convert(&self) -> Result<Vec<u8>> {
+impl Convertible<Bytes> for ParsableField {
+    fn convert(&self) -> Result<Bytes> {
         if self.field_type == FieldType::Bin as u8 {
-            Ok(self.data.clone())
+            Ok(Bytes::from(self.data.clone()))
         } else {
             bail!("Requested to read incompatible type as Vec<u8>");
         }
     }
 }
 
-impl Convertible<Vec<ParsableField>> for ParsableField {
-    fn convert(&self) -> Result<Vec<ParsableField>> {
-        if self.field_type == FieldType::List as u8 {
-            let len = self.data.len();
-            let mut consumed: usize = 0;
-            let mut result = vec![];
-            let mut readable = self.data.as_slice();
-            while consumed < len {
-                let (bytes, field) = ParsableField::from_read(&mut readable)?;
-                consumed += bytes;
-                result.push(field);
-            }
-            Ok(result)
-        } else {
-            bail!("Requested to read incompatible type as Vec<ParsableField>")
+fn parse_list(field: &ParsableField) -> Result<Vec<ParsableField>> {
+    if field.field_type == FieldType::List as u8 {
+        let len = field.data.len();
+        let mut consumed: usize = 0;
+        let mut result = vec![];
+        let mut readable = field.data.as_slice();
+        while consumed < len {
+            let (bytes, field) = ParsableField::from_read(&mut readable)?;
+            consumed += bytes;
+            result.push(field);
         }
+        Ok(result)
+    } else {
+        bail!("Requested to read incompatible type as Vec<ParsableField>")
     }
 }
 
-impl Convertible<Vec<String>> for ParsableField {
-    fn convert(&self) -> Result<Vec<String>> {
+impl<T> Convertible<Vec<T>> for ParsableField
+where
+    ParsableField: Convertible<T>,
+{
+    fn convert(&self) -> Result<Vec<T>> {
         if self.field_type == FieldType::List as u8 {
             let mut result = vec![];
-            let parsable_fields: Vec<ParsableField> = self.convert()?;
+            let parsable_fields: Vec<ParsableField> = parse_list(self)?;
             for f in parsable_fields {
                 let c = f.convert()?;
                 result.push(c);

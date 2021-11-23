@@ -17,12 +17,13 @@ pub enum Reply {
         htsp_version: u32,
         server_name: String,
         server_version: String,
-        challenge: Vec<u8>,
+        challenge: Bytes,
         server_capabilities: Vec<String>,
         webroot: Option<String>,
     },
 }
 
+use bytes::Bytes;
 use std::collections::HashMap;
 use Request::*;
 
