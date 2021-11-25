@@ -18,11 +18,13 @@ pub struct Field {
     data: FieldData,
 }
 
+pub type Fields = Vec<Field>;
+
 impl Field {
     pub fn from_u32(name: String, value: u32) -> Self {
         Field {
             name,
-            length: Self::get_number_length(value as i64),
+            length: Self::calc_number_length(value as i64),
             data: FieldData::S64(value as i64),
         }
     }
@@ -35,7 +37,7 @@ impl Field {
         }
     }
 
-    fn get_number_length(value: i64) -> usize {
+    fn calc_number_length(value: i64) -> usize {
         let mut v = value;
         let mut len = 0;
         while v != 0 {
@@ -43,5 +45,26 @@ impl Field {
             len += 1;
         }
         len
+    }
+
+    pub fn get_name_length(&self) -> usize {
+        self.name.len()
+    }
+
+    pub fn get_data_length(&self) -> usize {
+        self.length
+    }
+
+    pub fn get_field_length(&self) -> usize {
+        // 1 for field type, 1 for name length, 4 for data length
+        self.get_name_length() + self.get_data_length() + 1 + 1 + 4
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn get_data(&self) -> &FieldData {
+        &self.data
     }
 }

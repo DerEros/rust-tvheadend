@@ -10,7 +10,7 @@ use serde::ser::{
 };
 use serde::Serialize;
 
-type Fields = Vec<Field>;
+use super::intermediate::Fields;
 
 pub struct MessageSerializer {
     method: String,

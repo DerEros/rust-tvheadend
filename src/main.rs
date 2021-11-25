@@ -2,6 +2,7 @@ pub mod protocol;
 
 use crate::protocol::messages::Request;
 use crate::protocol::request_serializer::RequestSerializer;
+use crate::protocol::wire_format::ToBytes;
 use anyhow::Result;
 use log::*;
 use serde::Serialize;
@@ -26,5 +27,8 @@ async fn main() -> Result<()> {
     let res = req.serialize(serializer)?;
 
     warn!("Result: {:?}", res);
+
+    let bytes = res.to_bytes();
+    warn!("Bytes: {:?}", bytes);
     Ok(())
 }
