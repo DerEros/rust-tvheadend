@@ -1,6 +1,5 @@
 use bytes::Bytes;
 use std::collections::HashMap;
-use std::ops::Shr;
 
 #[derive(Debug)]
 pub enum FieldData {

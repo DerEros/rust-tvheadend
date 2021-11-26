@@ -1,6 +1,5 @@
 use super::intermediate::Fields;
 use crate::protocol::intermediate::{Field, FieldData};
-use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
 use log::*;
 
@@ -62,7 +61,7 @@ fn serialize_data(data: &FieldData, buffer: &mut BytesMut) {
         FieldData::S64(i) => serialize_s64(i, buffer),
         FieldData::Str(s) => serialize_str(s, buffer),
         FieldData::Bin(b) => serialize_bin(b, buffer),
-        FieldData::List(l) => todo!(),
+        FieldData::List(_) => todo!(),
     }
 }
 

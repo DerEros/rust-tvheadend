@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
         client_name: "rust-tvheadend",
     };
 
-    let mut serializer = RequestSerializer {};
+    let serializer = RequestSerializer {};
     let res = req.serialize(serializer)?;
 
     warn!("Result: {:?}", res);

@@ -8,7 +8,6 @@ use serde::ser::{
 };
 use serde::Serialize;
 use std::fmt::Error;
-use std::marker::PhantomData;
 
 type Fields = Vec<Field>;
 
@@ -25,66 +24,82 @@ impl Serializer for RequestSerializer {
     type SerializeStruct = Self;
     type SerializeStructVariant = MessageSerializer;
 
+    #[allow(unused_variables)]
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
         T: Serialize,
@@ -92,14 +107,17 @@ impl Serializer for RequestSerializer {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_unit_variant(
         self,
         name: &'static str,
@@ -109,6 +127,7 @@ impl Serializer for RequestSerializer {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_newtype_struct<T: ?Sized>(
         self,
         name: &'static str,
@@ -120,6 +139,7 @@ impl Serializer for RequestSerializer {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_newtype_variant<T: ?Sized>(
         self,
         name: &'static str,
@@ -133,14 +153,17 @@ impl Serializer for RequestSerializer {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_tuple_struct(
         self,
         name: &'static str,
@@ -149,6 +172,7 @@ impl Serializer for RequestSerializer {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_tuple_variant(
         self,
         name: &'static str,
@@ -159,10 +183,12 @@ impl Serializer for RequestSerializer {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_struct(
         self,
         name: &'static str,
@@ -173,10 +199,10 @@ impl Serializer for RequestSerializer {
 
     fn serialize_struct_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
+        _name: &'static str,
+        _variant_index: u32,
         variant: &'static str,
-        len: usize,
+        _len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         trace!("Serialize variant '{}'", variant);
         Ok(MessageSerializer::new(variant.to_lowercase()))
@@ -187,6 +213,7 @@ impl SerializeSeq for RequestSerializer {
     type Ok = Fields;
     type Error = Error;
 
+    #[allow(unused_variables)]
     fn serialize_element<T: ?Sized>(
         &mut self,
         value: &T,
@@ -206,6 +233,7 @@ impl SerializeTuple for RequestSerializer {
     type Ok = Fields;
     type Error = Error;
 
+    #[allow(unused_variables)]
     fn serialize_element<T: ?Sized>(
         &mut self,
         value: &T,
@@ -225,6 +253,7 @@ impl SerializeTupleStruct for RequestSerializer {
     type Ok = Fields;
     type Error = Error;
 
+    #[allow(unused_variables)]
     fn serialize_field<T: ?Sized>(
         &mut self,
         value: &T,
@@ -244,6 +273,7 @@ impl SerializeTupleVariant for RequestSerializer {
     type Ok = Fields;
     type Error = Error;
 
+    #[allow(unused_variables)]
     fn serialize_field<T: ?Sized>(
         &mut self,
         value: &T,
@@ -263,6 +293,7 @@ impl SerializeMap for RequestSerializer {
     type Ok = Fields;
     type Error = Error;
 
+    #[allow(unused_variables)]
     fn serialize_key<T: ?Sized>(
         &mut self,
         key: &T,
@@ -273,6 +304,7 @@ impl SerializeMap for RequestSerializer {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn serialize_value<T: ?Sized>(
         &mut self,
         value: &T,
@@ -292,6 +324,7 @@ impl SerializeStruct for RequestSerializer {
     type Ok = Fields;
     type Error = Error;
 
+    #[allow(unused_variables)]
     fn serialize_field<T: ?Sized>(
         &mut self,
         key: &'static str,
@@ -312,6 +345,7 @@ impl SerializeStructVariant for RequestSerializer {
     type Ok = Fields;
     type Error = Error;
 
+    #[allow(unused_variables)]
     fn serialize_field<T: ?Sized>(
         &mut self,
         key: &'static str,
