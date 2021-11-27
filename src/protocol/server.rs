@@ -56,6 +56,7 @@ impl Server {
 
     pub(self) async fn send(&mut self, data: &Bytes) -> Result<()> {
         if let Some(ref mut stream) = self.stream {
+            stream.writable().await?;
             stream.write_all(data).await?;
             Ok(())
         } else {
