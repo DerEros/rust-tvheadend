@@ -6,10 +6,13 @@ use bytes::Bytes;
 use log::*;
 use serde::Serialize;
 use std::sync::RwLock;
-use futures::channel::mpsc::UnboundedReceiver;
+use std::time::Duration;
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures::StreamExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::net::ToSocketAddrs;
+use tokio::select;
 
 pub struct Server {
     stream: Option<TcpStream>,
@@ -74,6 +77,8 @@ impl Server {
 
     pub async fn run(&mut self) -> Result<()> {
         if let Some(ref mut stream) = self.stream {
+            let tx = StreamContainer::create("herman:9982".into()).run().await;
+            tx.unbounded_send(Bytes::from("FooBar"));
             let mut receiver = Receiver::new(stream);
             receiver.event_loop().await?;
 
@@ -121,5 +126,37 @@ impl<'a, 'b> ServerRequest<'a, 'b> {
         self.server.send(&data).await?;
 
         Ok(())
+    }
+}
+
+struct StreamContainer {
+    address: String,
+}
+
+impl StreamContainer {
+    pub fn create(address: String) -> Self {
+        Self {
+            address
+        }
+    }
+
+    pub async fn run(&self) -> UnboundedSender<Bytes> {
+        let (tx, mut rx) = unbounded();
+        let addr = self.address.clone();
+        tokio::spawn(async move {
+            let stream = TcpStream::connect(addr).await.unwrap();
+            Self::event_loop(stream, rx).await;
+        });
+
+        tx
+    }
+
+    async fn event_loop(stream: TcpStream, mut rx: UnboundedReceiver<Bytes>) {
+        loop {
+            trace!("Running...");
+            select! {
+                    data = rx.next() => trace!("Received msg in thread: {:?}", data),
+            }
+        }
     }
 }
