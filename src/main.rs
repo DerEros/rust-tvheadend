@@ -20,9 +20,7 @@ async fn main() -> Result<()> {
     let mut server = Server::new();
     let _ = server.connect("herman:9982").await?;
     let _ = server.hello(25, "client_name", "client_version").await?;
-    let mut r = server.get_receiver()?;
 
-    r.event_loop().await?;
-
+    server.run().await?;
     Ok(())
 }

@@ -6,6 +6,7 @@ use bytes::Bytes;
 use log::*;
 use serde::Serialize;
 use std::sync::RwLock;
+use futures::channel::mpsc::UnboundedReceiver;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::net::ToSocketAddrs;
@@ -13,6 +14,7 @@ use tokio::net::ToSocketAddrs;
 pub struct Server {
     stream: Option<TcpStream>,
     next_sequence_number: RwLock<usize>,
+    receiver_stop_channel: Option<UnboundedReceiver<bool>>,
 }
 
 impl Server {
@@ -20,6 +22,7 @@ impl Server {
         Self {
             stream: None,
             next_sequence_number: RwLock::new(0),
+            receiver_stop_channel: None,
         }
     }
 
@@ -69,11 +72,14 @@ impl Server {
         }
     }
 
-    pub fn get_receiver(&mut self) -> Result<Receiver> {
+    pub async fn run(&mut self) -> Result<()> {
         if let Some(ref mut stream) = self.stream {
-            Ok(Receiver::new(stream))
+            let mut receiver = Receiver::new(stream);
+            receiver.event_loop().await?;
+
+            Ok(())
         } else {
-            bail!("Trying to send message without connection")
+            bail!("Trying to run server without connection")
         }
     }
 }
