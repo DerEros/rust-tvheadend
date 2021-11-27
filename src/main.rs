@@ -2,10 +2,10 @@ pub mod protocol;
 
 use crate::protocol::messages::Request;
 use crate::protocol::request_serializer::RequestSerializer;
+use crate::protocol::server::Server;
 use crate::protocol::wire_format::ToBytes;
 use anyhow::Result;
 use log::*;
-use serde::Serialize;
 
 fn setup_logging() {
     env_logger::init();
@@ -17,18 +17,8 @@ async fn main() -> Result<()> {
     setup_logging();
     info!("Hello, world!");
 
-    let req = Request::Hello {
-        htsp_version: 25,
-        client_version: "1.0.0",
-        client_name: "rust-tvheadend",
-    };
-
-    let serializer = RequestSerializer {};
-    let res = req.serialize(serializer)?;
-
-    warn!("Result: {:?}", res);
-
-    let bytes = res.to_bytes();
-    warn!("Bytes: {:?}", bytes);
+    let mut server = Server::new();
+    let _ = server.connect("herman:9982").await?;
+    let _ = server.hello(25, "client_name", "client_version")?;
     Ok(())
 }

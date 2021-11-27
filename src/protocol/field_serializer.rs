@@ -15,8 +15,12 @@ pub struct FieldSerializer {
 impl FieldSerializer {
     pub fn new<T: AsRef<str>>(name: T) -> Self {
         Self {
-            name: name.as_ref().to_string(),
+            name: Self::adjust_name(name),
         }
+    }
+
+    fn adjust_name<T: AsRef<str>>(name: T) -> String {
+        name.as_ref().replace(&['_', '-'][..], "")
     }
 }
 

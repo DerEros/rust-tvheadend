@@ -13,6 +13,12 @@ type Fields = Vec<Field>;
 
 pub struct RequestSerializer {}
 
+impl RequestSerializer {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 impl Serializer for RequestSerializer {
     type Ok = Fields;
     type Error = Error;
@@ -359,5 +365,11 @@ impl SerializeStructVariant for RequestSerializer {
 
     fn end(self) -> std::prelude::rust_2015::Result<Self::Ok, Self::Error> {
         todo!()
+    }
+}
+
+impl Default for RequestSerializer {
+    fn default() -> Self {
+        RequestSerializer::new()
     }
 }

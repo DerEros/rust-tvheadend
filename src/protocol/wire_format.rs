@@ -13,6 +13,7 @@ impl ToBytes for Fields {
         trace!("Total of {} bytes", total_length);
 
         let mut buffer = BytesMut::with_capacity(total_length);
+        buffer.put_u32(total_length as u32);
         for field in self {
             serialize_field(field, &mut buffer);
         }
