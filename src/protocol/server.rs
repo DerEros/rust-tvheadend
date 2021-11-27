@@ -1,13 +1,14 @@
-use std::sync::RwLock;
+use crate::protocol::intermediate::Field;
+use crate::protocol::message_receiver::Receiver;
 use crate::{Request, RequestSerializer, ToBytes};
 use anyhow::{bail, Result};
 use bytes::Bytes;
 use log::*;
 use serde::Serialize;
+use std::sync::RwLock;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::net::ToSocketAddrs;
-use crate::protocol::intermediate::Field;
 
 pub struct Server {
     stream: Option<TcpStream>,
@@ -18,7 +19,7 @@ impl Server {
     pub fn new() -> Self {
         Self {
             stream: None,
-            next_sequence_number: RwLock::new(0)
+            next_sequence_number: RwLock::new(0),
         }
     }
 
@@ -36,13 +37,17 @@ impl Server {
         client_name: T,
         client_version: T,
     ) -> Result<()> {
-        ServerRequest::from_message(self,
+        ServerRequest::from_message(
+            self,
             Request::Hello {
                 client_name: client_name.as_ref(),
                 client_version: client_version.as_ref(),
                 htsp_version,
-            }
-        ).with_seq().send().await?;
+            },
+        )
+        .with_seq()
+        .send()
+        .await?;
 
         Ok(())
     }
@@ -63,6 +68,14 @@ impl Server {
             bail!("Trying to send message without connection")
         }
     }
+
+    pub fn get_receiver(&mut self) -> Result<Receiver> {
+        if let Some(ref mut stream) = self.stream {
+            Ok(Receiver::new(stream))
+        } else {
+            bail!("Trying to send message without connection")
+        }
+    }
 }
 
 impl Default for Server {
@@ -77,7 +90,7 @@ pub struct ServerRequest<'a, 'b> {
     sequence_number: Option<usize>,
 }
 
-impl <'a, 'b> ServerRequest<'a, 'b> {
+impl<'a, 'b> ServerRequest<'a, 'b> {
     pub fn from_message(server: &'b mut Server, message: Request<'a>) -> Self {
         Self {
             message,
@@ -102,6 +115,5 @@ impl <'a, 'b> ServerRequest<'a, 'b> {
         self.server.send(&data).await?;
 
         Ok(())
-
     }
 }
