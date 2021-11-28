@@ -3,38 +3,30 @@ use crate::protocol::message_receiver::Receiver;
 use crate::{Request, RequestSerializer, ToBytes};
 use anyhow::{bail, Result};
 use bytes::Bytes;
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures::StreamExt;
 use log::*;
 use serde::Serialize;
 use std::sync::RwLock;
 use std::time::Duration;
-use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
-use futures::StreamExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::net::ToSocketAddrs;
 use tokio::select;
 
 pub struct Server {
-    stream: Option<TcpStream>,
+    address: String,
     next_sequence_number: RwLock<usize>,
-    receiver_stop_channel: Option<UnboundedReceiver<bool>>,
+    stream_channel: Option<UnboundedSender<StreamCommand>>,
 }
 
 impl Server {
-    pub fn new() -> Self {
+    pub fn new<T: AsRef<str>>(address: T) -> Self {
         Self {
-            stream: None,
+            address: address.as_ref().to_string(),
             next_sequence_number: RwLock::new(0),
-            receiver_stop_channel: None,
+            stream_channel: None,
         }
-    }
-
-    pub async fn connect<T: ToSocketAddrs>(&mut self, address: T) -> Result<()> {
-        debug!("Connecting to server");
-        let stream = TcpStream::connect(address).await?;
-        trace!("Connection successful");
-        self.stream = Some(stream);
-        Ok(())
     }
 
     pub async fn hello<T: AsRef<str>>(
@@ -66,9 +58,8 @@ impl Server {
     }
 
     pub(self) async fn send(&mut self, data: &Bytes) -> Result<()> {
-        if let Some(ref mut stream) = self.stream {
-            stream.writable().await?;
-            stream.write_all(data).await?;
+        if let Some(channel) = self.stream_channel.as_ref() {
+            channel.unbounded_send(StreamCommand::Send(data.clone()));
             Ok(())
         } else {
             bail!("Trying to send message without connection")
@@ -76,22 +67,11 @@ impl Server {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        if let Some(ref mut stream) = self.stream {
-            let tx = StreamContainer::create("herman:9982".into()).run().await;
-            tx.unbounded_send(Bytes::from("FooBar"));
-            let mut receiver = Receiver::new(stream);
-            receiver.event_loop().await?;
-
-            Ok(())
-        } else {
-            bail!("Trying to run server without connection")
-        }
-    }
-}
-
-impl Default for Server {
-    fn default() -> Self {
-        Server::new()
+        let tx = StreamContainer::create(self.address.clone()).run().await;
+        self.stream_channel = Some(tx);
+        // let mut receiver = Receiver::new(stream);
+        // receiver.event_loop().await?;
+        Ok(())
     }
 }
 
@@ -129,34 +109,53 @@ impl<'a, 'b> ServerRequest<'a, 'b> {
     }
 }
 
+#[derive(Debug)]
+pub enum StreamCommand {
+    Send(Bytes),
+    Stop,
+}
+
 struct StreamContainer {
     address: String,
 }
 
 impl StreamContainer {
     pub fn create(address: String) -> Self {
-        Self {
-            address
-        }
+        Self { address }
     }
 
-    pub async fn run(&self) -> UnboundedSender<Bytes> {
+    pub async fn run(&self) -> UnboundedSender<StreamCommand> {
         let (tx, mut rx) = unbounded();
         let addr = self.address.clone();
         tokio::spawn(async move {
-            let stream = TcpStream::connect(addr).await.unwrap();
+            let mut stream = TcpStream::connect(addr).await.unwrap();
             Self::event_loop(stream, rx).await;
         });
 
         tx
     }
 
-    async fn event_loop(stream: TcpStream, mut rx: UnboundedReceiver<Bytes>) {
+    async fn event_loop(mut stream: TcpStream, mut rx: UnboundedReceiver<StreamCommand>) {
         loop {
             trace!("Running...");
             select! {
-                    data = rx.next() => trace!("Received msg in thread: {:?}", data),
+                Some(data) = rx.next() => {
+                    trace!("Received: {:?}", data);
+                    Self::handle_stream_command(&mut stream, data).await;
+                },
+                else => break
             }
+        }
+    }
+
+    async fn handle_stream_command(stream: &mut TcpStream, command: StreamCommand) {
+        match command {
+            StreamCommand::Send(data) => {
+                trace!("Received send");
+                let _ = stream.writable().await;
+                let _ = stream.write_all(&data).await;
+            }
+            StreamCommand::Stop => trace!("Received stop"),
         }
     }
 }
