@@ -1,6 +1,5 @@
 use anyhow::Result;
 use bytes::BytesMut;
-use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use log::*;
 use std::sync::RwLock;
 use tokio::io::AsyncReadExt;
@@ -9,18 +8,13 @@ use tokio::net::TcpStream;
 pub struct Receiver<'a> {
     stream: &'a mut TcpStream,
     stop: RwLock<bool>,
-    cancel_sender: UnboundedSender<bool>,
-    cancel_receiver: UnboundedReceiver<bool>,
 }
 
 impl<'a> Receiver<'a> {
     pub fn new(stream: &'a mut TcpStream) -> Self {
-        let (tx, rx) = unbounded();
         Self {
             stream,
             stop: RwLock::new(false),
-            cancel_sender: tx,
-            cancel_receiver: rx,
         }
     }
 
