@@ -1,9 +1,9 @@
 use crate::protocol::intermediate::Field;
-use crate::protocol::stream_container::{StreamCommand, StreamContainer};
+use crate::protocol::stream_container::{Data, StreamCommand, StreamContainer};
 use crate::{Request, RequestSerializer, ToBytes};
 use anyhow::{bail, Result};
 use bytes::Bytes;
-use futures::channel::mpsc::UnboundedSender;
+use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use log::*;
 use serde::Serialize;
 use std::sync::RwLock;
@@ -11,7 +11,8 @@ use std::sync::RwLock;
 pub struct Server {
     address: String,
     next_sequence_number: RwLock<usize>,
-    stream_channel: Option<UnboundedSender<StreamCommand>>,
+    send_channel: Option<UnboundedSender<StreamCommand>>,
+    receive_channel: Option<UnboundedReceiver<Data>>,
 }
 
 impl Server {
@@ -19,7 +20,8 @@ impl Server {
         Self {
             address: address.as_ref().to_string(),
             next_sequence_number: RwLock::new(0),
-            stream_channel: None,
+            send_channel: None,
+            receive_channel: None,
         }
     }
 
@@ -52,7 +54,7 @@ impl Server {
     }
 
     pub(self) async fn send(&mut self, data: &Bytes) -> Result<()> {
-        if let Some(channel) = self.stream_channel.as_ref() {
+        if let Some(channel) = self.send_channel.as_ref() {
             let _ = channel.unbounded_send(StreamCommand::Send(data.clone()));
             Ok(())
         } else {
@@ -61,8 +63,9 @@ impl Server {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        let tx = StreamContainer::create(self.address.clone()).run().await;
-        self.stream_channel = Some(tx);
+        let (tx, rx) = StreamContainer::create(self.address.clone()).run().await;
+        self.send_channel = Some(tx);
+        self.receive_channel = Some(rx);
         Ok(())
     }
 }

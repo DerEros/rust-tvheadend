@@ -13,6 +13,11 @@ pub enum StreamCommand {
     Stop,
 }
 
+#[derive(Debug)]
+pub enum Data {
+    Bin(Bytes),
+}
+
 pub struct StreamContainer {
     address: String,
 }
@@ -22,28 +27,33 @@ impl StreamContainer {
         Self { address }
     }
 
-    pub async fn run(&self) -> UnboundedSender<StreamCommand> {
-        let (tx, rx) = unbounded();
+    pub async fn run(&self) -> (UnboundedSender<StreamCommand>, UnboundedReceiver<Data>) {
+        let (cmd_tx, cmd_rx) = unbounded();
+        let (data_tx, data_rx) = unbounded();
         let addr = self.address.clone();
         tokio::spawn(async move {
             let stream = TcpStream::connect(addr).await.unwrap();
-            Self::event_loop(stream, rx).await;
+            Self::event_loop(stream, cmd_rx, data_tx).await;
         });
 
-        tx
+        (cmd_tx, data_rx)
     }
 
-    async fn event_loop(mut stream: TcpStream, mut rx: UnboundedReceiver<StreamCommand>) {
+    async fn event_loop(
+        mut stream: TcpStream,
+        mut command_in: UnboundedReceiver<StreamCommand>,
+        mut data_out: UnboundedSender<Data>,
+    ) {
         loop {
             trace!("Running...");
             select! {
-                Some(data) = rx.next() => {
+                Some(data) = command_in.next() => {
                     trace!("Received: {:?}", data);
                     Self::handle_stream_command(&mut stream, data).await;
                 },
                 Ok(message_size) = stream.read_u32() => {
                     trace!("Announced message of {} bytes", message_size);
-                    Self::handle_message_incoming(&mut stream, message_size).await;
+                    Self::handle_message_incoming(&mut stream, message_size, &mut data_out).await;
                 }
                 else => break
             }
@@ -61,10 +71,15 @@ impl StreamContainer {
         }
     }
 
-    async fn handle_message_incoming(stream: &mut TcpStream, expected_size: u32) {
+    async fn handle_message_incoming(
+        stream: &mut TcpStream,
+        expected_size: u32,
+        out: &mut UnboundedSender<Data>,
+    ) {
         let mut buffer = BytesMut::with_capacity(expected_size as usize);
         let _ = stream.read_buf(&mut buffer).await;
 
         trace!("Received data: {:?}", buffer);
+        let _ = out.unbounded_send(Data::Bin(buffer.freeze()));
     }
 }
