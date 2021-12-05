@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
     let _ = server.run().await?;
     let _ = server.hello(25, "client_name", "client_version").await?;
 
-    server.run().await?;
+    let _ = server.get_next_data().await;
     std::thread::sleep(Duration::from_secs(10));
     Ok(())
 }

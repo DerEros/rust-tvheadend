@@ -7,6 +7,8 @@ use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use log::*;
 use serde::Serialize;
 use std::sync::RwLock;
+use futures::{StreamExt, TryStreamExt};
+use crate::protocol::messages::Reply;
 
 pub struct Server {
     address: String,
@@ -66,7 +68,29 @@ impl Server {
         let (tx, rx) = StreamContainer::create(self.address.clone()).run().await;
         self.send_channel = Some(tx);
         self.receive_channel = Some(rx);
+
         Ok(())
+    }
+
+    pub async fn get_next_data(&mut self) -> Option<Reply> {
+        trace!("Waiting for next data");
+        if let Some(mut rx) = self.receive_channel.as_mut() {
+            if let Some(data) = rx.next().await {
+                Some(Self::parse_incoming_data(data))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn parse_incoming_data(data: Data) -> Reply {
+        let reply = Reply::Nop;
+
+        trace!("Received reply: {:?}", reply);
+        reply
+
     }
 }
 

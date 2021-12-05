@@ -1,4 +1,4 @@
-use serde_derive::Serialize;
+use serde_derive::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize)]
 pub enum Request<'a> {
@@ -7,4 +7,9 @@ pub enum Request<'a> {
         client_name: &'a str,
         client_version: &'a str,
     },
+}
+
+#[derive(Debug, Deserialize)]
+pub enum Reply {
+    Nop
 }
