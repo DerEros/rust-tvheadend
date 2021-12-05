@@ -1,7 +1,30 @@
+use anyhow::Result;
 use super::intermediate::Fields;
 use crate::protocol::intermediate::{Field, FieldData};
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use log::*;
+
+#[derive(Debug)]
+pub enum FieldType {
+    Map = 1,
+    S64,
+    Str,
+    Bin,
+    List,
+}
+
+impl FieldType {
+    pub fn from_u8(v: u8) -> Option<FieldType> {
+        match v {
+            1 => Some(FieldType::Map),
+            2 => Some(FieldType::S64),
+            3 => Some(FieldType::Str),
+            4 => Some(FieldType::Bin),
+            5 => Some(FieldType::List),
+            _ => None
+        }
+    }
+}
 
 pub trait ToBytes {
     fn to_bytes(&self) -> Bytes;
@@ -76,4 +99,24 @@ fn serialize_str(s: &str, buffer: &mut BytesMut) {
 
 fn serialize_bin(b: &Bytes, buffer: &mut BytesMut) {
     buffer.put(b.clone());
+}
+
+pub trait ToFields {
+    fn to_fields(&mut self) -> Result<Fields>;
+}
+
+impl ToFields for Bytes {
+    fn to_fields(&mut self) -> Result<Fields> {
+        while self.has_remaining() {
+            let field_type_num = self.get_u8();
+            let field_type = FieldType::from_u8(field_type_num).expect(format!("Unknown field type {}", field_type_num).as_str());
+            let name_length = self.get_u8() as usize;
+            let data_length = self.get_u32() as usize;
+            let name = String::from_utf8(self.copy_to_bytes(name_length).as_ref().to_vec())?;
+            let data: Bytes = self.copy_to_bytes(data_length);
+
+            trace!("Parced fields: {}, {}, {}, {:?}", name_length, data_length, name, data);
+        }
+        Ok(vec![])
+    }
 }

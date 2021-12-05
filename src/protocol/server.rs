@@ -9,6 +9,8 @@ use serde::Serialize;
 use std::sync::RwLock;
 use futures::{StreamExt, TryStreamExt};
 use crate::protocol::messages::Reply;
+use crate::protocol::stream_container::Data::Bin;
+use crate::protocol::wire_format::ToFields;
 
 pub struct Server {
     address: String,
@@ -75,7 +77,7 @@ impl Server {
     pub async fn get_next_data(&mut self) -> Option<Reply> {
         trace!("Waiting for next data");
         if let Some(mut rx) = self.receive_channel.as_mut() {
-            if let Some(data) = rx.next().await {
+            if let Some(ref mut data) = rx.next().await {
                 Some(Self::parse_incoming_data(data))
             } else {
                 None
@@ -85,8 +87,12 @@ impl Server {
         }
     }
 
-    fn parse_incoming_data(data: Data) -> Reply {
+    fn parse_incoming_data(data: &mut Data) -> Reply {
         let reply = Reply::Nop;
+
+        if let Bin(ref mut d) = data {
+            d.to_fields();
+        }
 
         trace!("Received reply: {:?}", reply);
         reply
